@@ -27,7 +27,7 @@
       width: 100%;
       height: 100%;
     }
-    /* Each page fills the viewport and slides vertically */
+    /* Each page fills the viewport and slides vertically with a smooth transition */
     .page {
       position: absolute;
       top: 0;
@@ -37,10 +37,10 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      transition: transform 0.5s ease;
+      transition: transform 0.5s ease-in-out;
       overflow: hidden;
     }
-    /* Blurred background image layer */
+    /* Blurred background image layer with continuous filter transition */
     .bg-image {
       position: absolute;
       top: 0;
@@ -53,6 +53,7 @@
       transform: scale(1.1);
       z-index: 0;
       opacity: 0.5;
+      transition: filter 0.5s ease-in-out;
     }
     /* Foreground content card */
     .story-content {
@@ -169,12 +170,13 @@
     #refreshBtn:hover {
       opacity: 1;
     }
-    /* Feed menu dropdown */
+    /* Feed menu dropdown styled to match the buttons */
     .feed-menu {
       position: fixed;
       top: 60px;
       left: 10px;
-      background: rgba(255, 255, 255, 0.95);
+      background: transparent;
+      border: none;
       border-radius: 5px;
       padding: 10px;
       z-index: 20;
@@ -185,18 +187,23 @@
       margin: 0;
       padding: 0;
     }
-    .feed-menu li {
-      margin: 5px 0;
-    }
     .feed-menu li a {
       text-decoration: none;
-      color: #0077cc;
+      color: rgba(255, 255, 255, 0.8);
       font-weight: bold;
+      display: block;
+      padding: 8px 12px;
+      transition: opacity 0.3s;
+      opacity: 0.7;
+    }
+    .feed-menu li a:hover {
+      opacity: 1;
     }
     /* Media Query for small screens (mobile phones) */
     @media (max-width: 600px) {
       .story-content {
-        width: 95%;
+        width: 90%;
+        margin: 0 auto; /* Added horizontal margins */
         padding: 15px;
       }
       .story-content h2 {
@@ -286,8 +293,12 @@
     const feedMenu = document.getElementById('feedMenu');
     const refreshBtn = document.getElementById('refreshBtn');
 
+    // Caches to reduce API calls
+    const storyCache = {};
+    const previewCache = {};
+
     let currentIndex = 0;       // Current page index
-    let stories = [];           // Loaded story objects
+    let stories = [];           // Array of loaded story objects
     let storyIds = [];          // IDs for current feed
     let currentBatchIndex = 0;  // For batch loading
     const batchSize = 10;       // Stories per batch
@@ -320,11 +331,6 @@
 
     /**
      * Create a page element for a Hacker News story.
-     * The page includes:
-     *  - A blurred background layer.
-     *  - A content card (with optional preview image and description).
-     *  - A top‑right icon linking to the HN item.
-     *  - A bottom‑right overlay showing the story’s rank and comment count.
      */
     function createPage(story) {
       const page = document.createElement('div');
@@ -345,7 +351,7 @@
       `;
       page.appendChild(contentDiv);
 
-      // Top right: HN link icon (opens the HN comments page)
+      // Top right: HN link icon (opens HN comments page)
       const hnLink = document.createElement('a');
       hnLink.classList.add('hn-link-icon');
       hnLink.href = `https://news.ycombinator.com/item?id=${story.id}`;
@@ -360,7 +366,7 @@
       hnInfo.textContent = `#${rank} | ${story.descendants || 0} comments`;
       page.appendChild(hnInfo);
 
-      // If a URL exists, fetch preview metadata using Microlink
+      // If a URL exists, fetch preview metadata using caching
       if (story.url) {
         fetchPreviewData(story.url).then(previewData => {
           if (previewData && previewData.image && previewData.image.url) {
@@ -388,15 +394,18 @@
     }
 
     /**
-     * Fetch preview metadata for a URL using the Microlink API.
-     * Returns an object containing metadata (image, description, etc.)
+     * Fetch preview metadata for a URL using the Microlink API (with caching).
      */
     async function fetchPreviewData(url) {
+      if (previewCache[url]) {
+        return Promise.resolve(previewCache[url]);
+      }
       try {
         const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&meta=true`;
         const response = await fetch(apiUrl);
         const data = await response.json();
         if (data && data.data) {
+          previewCache[url] = data.data;
           return data.data;
         }
       } catch (error) {
@@ -413,10 +422,16 @@
       const idsToLoad = storyIds.slice(currentBatchIndex, currentBatchIndex + batchSize);
       currentBatchIndex += batchSize;
 
-      // Fetch story details concurrently
-      const promises = idsToLoad.map(id =>
-        fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).then(res => res.json())
-      );
+      // Fetch story details concurrently (with caching)
+      const promises = idsToLoad.map(id => {
+        if (storyCache[id]) {
+          return Promise.resolve(storyCache[id]);
+        } else {
+          return fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`)
+            .then(res => res.json())
+            .then(data => { storyCache[id] = data; return data; });
+        }
+      });
       try {
         const newStories = await Promise.all(promises);
         newStories.forEach(story => {
@@ -474,7 +489,73 @@
     }
 
     /************************
-     * EVENT LISTENERS SETUP *
+     * TOUCH DRAG INTERACTION *
+     ************************/
+    // Variables for continuous drag
+    let touchStartY = null;
+    document.addEventListener('touchstart', (e) => {
+      touchStartY = e.changedTouches[0].screenY;
+    });
+    document.addEventListener('touchmove', (e) => {
+      if (touchStartY === null) return;
+      const currentY = e.changedTouches[0].screenY;
+      const delta = currentY - touchStartY;
+      const percent = (delta / window.innerHeight) * 100;
+      updateDragging(percent);
+      e.preventDefault();
+    });
+    document.addEventListener('touchend', (e) => {
+      if (touchStartY === null) return;
+      const currentY = e.changedTouches[0].screenY;
+      const delta = currentY - touchStartY;
+      // Restore transitions for snapping
+      document.querySelectorAll('.page').forEach(page => page.style.transition = '');
+      if (delta > 100) {
+        goToPrevPage();
+      } else if (delta < -100) {
+        goToNextPage();
+      } else {
+        renderPage(currentIndex);
+      }
+      touchStartY = null;
+    });
+    function updateDragging(percent) {
+      const pages = document.querySelectorAll('.page');
+      const progress = Math.min(1, Math.abs(percent) / 100);
+      // Update current page position and background blur
+      if (pages[currentIndex]) {
+        pages[currentIndex].style.transition = 'none';
+        pages[currentIndex].style.transform = `translateY(${percent}%)`;
+        const bg = pages[currentIndex].querySelector('.bg-image');
+        if (bg) {
+          const newBlur = 10 - progress * 10;
+          bg.style.filter = `blur(${newBlur}px)`;
+        }
+      }
+      // Update next page (if dragging upward)
+      if (percent < 0 && currentIndex < pages.length - 1 && pages[currentIndex + 1]) {
+        pages[currentIndex + 1].style.transition = 'none';
+        pages[currentIndex + 1].style.transform = `translateY(${100 + percent}%)`;
+        const bg = pages[currentIndex + 1].querySelector('.bg-image');
+        if (bg) {
+          const newBlur = progress * 10;
+          bg.style.filter = `blur(${newBlur}px)`;
+        }
+      }
+      // Update previous page (if dragging downward)
+      if (percent > 0 && currentIndex > 0 && pages[currentIndex - 1]) {
+        pages[currentIndex - 1].style.transition = 'none';
+        pages[currentIndex - 1].style.transform = `translateY(${-100 + percent}%)`;
+        const bg = pages[currentIndex - 1].querySelector('.bg-image');
+        if (bg) {
+          const newBlur = progress * 10;
+          bg.style.filter = `blur(${newBlur}px)`;
+        }
+      }
+    }
+
+    /************************
+     * OTHER EVENT LISTENERS *
      ************************/
     // Button navigation
     prevBtn.addEventListener('click', goToPrevPage);
@@ -484,27 +565,6 @@
       if (e.key === 'ArrowUp') goToPrevPage();
       else if (e.key === 'ArrowDown') goToNextPage();
     });
-    // Touch swipe navigation for mobile devices
-    let touchStartY = null;
-    document.addEventListener('touchstart', e => {
-      touchStartY = e.changedTouches[0].screenY;
-    });
-    document.addEventListener('touchend', e => {
-      if (touchStartY === null) return;
-      const touchEndY = e.changedTouches[0].screenY;
-      const diff = touchStartY - touchEndY;
-      // If on the first post, a pull-down (swipe down) triggers a refresh
-      if (currentIndex === 0 && diff < -50) {
-        refreshFeed();
-      } else if (diff > 0) {
-        // Swiping down (positive diff) moves to the next article
-        goToNextPage();
-      } else if (diff < 0) {
-        // Swiping up (negative diff) moves to the previous article
-        goToPrevPage();
-      }
-      touchStartY = null;
-    });
     // Pointer wheel navigation – each wheel event moves one article:
     let lastWheelTime = 0;
     document.addEventListener('wheel', (e) => {
@@ -512,21 +572,28 @@
       const now = Date.now();
       if (now - lastWheelTime < 600) return;
       lastWheelTime = now;
-      // For each wheel event with any positive deltaY, move to next; negative deltaY moves to previous
       if (e.deltaY > 0) goToNextPage();
       else if (e.deltaY < 0) goToPrevPage();
     }, { passive: false, capture: true });
-    // Feed menu toggle (hamburger button)
+    // Feed menu toggle using computed style
     feedMenuToggle.addEventListener('click', () => {
-      feedMenu.style.display = (feedMenu.style.display === 'block') ? 'none' : 'block';
+      if (getComputedStyle(feedMenu).display === 'none') {
+        feedMenu.style.display = 'block';
+      } else {
+        feedMenu.style.display = 'none';
+      }
     });
     // Refresh button click event
     refreshBtn.addEventListener('click', refreshFeed);
-    // Feed menu selection: load the selected feed
+    // Feed menu selection: event delegation (checking parent if needed)
     feedMenu.addEventListener('click', (e) => {
-      if (e.target.tagName.toLowerCase() === 'a') {
-        e.preventDefault();
-        const selectedFeed = e.target.getAttribute('data-feed');
+      e.preventDefault();
+      let target = e.target;
+      if (target.tagName.toLowerCase() !== 'a' && target.parentElement && target.parentElement.tagName.toLowerCase() === 'a') {
+        target = target.parentElement;
+      }
+      if (target && target.tagName.toLowerCase() === 'a') {
+        const selectedFeed = target.getAttribute('data-feed');
         if (selectedFeed && selectedFeed !== currentFeed) {
           currentFeed = selectedFeed;
           feedMenu.style.display = 'none';
