@@ -27,8 +27,8 @@
       width: 100%;
       height: 100%;
     }
-    /* Each page fills the viewport and slides vertically.
-       Note: Only the transform property is animated (no opacity transition). */
+    /* Each page fills the viewport and slides vertically with a smooth transition.
+       Only the transform property is animated—no opacity changes. */
     .page {
       position: absolute;
       top: 0;
@@ -38,7 +38,9 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      /* Only transform is animated */
       transition: transform 0.5s ease-in-out;
+      transition-property: transform;
       overflow: hidden;
     }
     /* Blurred background image layer with continuous filter transition */
