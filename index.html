@@ -27,7 +27,8 @@
       width: 100%;
       height: 100%;
     }
-    /* Each page fills the viewport and slides vertically with a smooth transition */
+    /* Each page fills the viewport and slides vertically.
+       Note: Only the transform property is animated (no opacity transition). */
     .page {
       position: absolute;
       top: 0;
@@ -65,7 +66,6 @@
       width: 90%;
       max-width: 800px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-      /* Prevent internal scrolling so that wheel events always flip pages */
       overflow: hidden;
       max-height: 90%;
       color: #333;
@@ -170,12 +170,12 @@
     #refreshBtn:hover {
       opacity: 1;
     }
-    /* Feed menu dropdown styled to match the buttons */
+    /* Feed menu dropdown styled with a semi-transparent dark background */
     .feed-menu {
       position: fixed;
       top: 60px;
       left: 10px;
-      background: transparent;
+      background: rgba(0, 0, 0, 0.6);
       border: none;
       border-radius: 5px;
       padding: 10px;
@@ -203,7 +203,7 @@
     @media (max-width: 600px) {
       .story-content {
         width: 90%;
-        margin: 0 auto; /* Added horizontal margins */
+        margin: 0 auto; /* Adds left/right margins on narrow screens */
         padding: 15px;
       }
       .story-content h2 {
@@ -491,7 +491,6 @@
     /************************
      * TOUCH DRAG INTERACTION *
      ************************/
-    // Variables for continuous drag
     let touchStartY = null;
     document.addEventListener('touchstart', (e) => {
       touchStartY = e.changedTouches[0].screenY;
