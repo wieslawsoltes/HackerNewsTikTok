@@ -28,7 +28,7 @@
       height: 100%;
     }
     /* Each page fills the viewport and slides vertically with a smooth transition.
-       Only the transform property is animated—no opacity changes. */
+       Only the transform property is animated—no opacity or card transitions. */
     .page {
       position: absolute;
       top: 0;
@@ -38,7 +38,6 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      /* Only transform is animated */
       transition: transform 0.5s ease-in-out;
       transition-property: transform;
       overflow: hidden;
@@ -58,7 +57,7 @@
       opacity: 0.5;
       transition: filter 0.5s ease-in-out;
     }
-    /* Foreground content card */
+    /* Foreground content card – no transition on opacity or other properties */
     .story-content {
       position: relative;
       z-index: 1;
@@ -71,6 +70,7 @@
       overflow: hidden;
       max-height: 90%;
       color: #333;
+      transition: none;  /* Ensure no additional transition is applied */
     }
     .story-content h2 {
       margin-top: 0;
@@ -80,13 +80,14 @@
       color: #0077cc;
       text-decoration: none;
     }
-    /* Preview image inside the content card */
+    /* Preview image inside the content card – no transition */
     .preview-img {
       width: 100%;
       max-height: 300px;
       object-fit: cover;
       border-radius: 5px;
       margin-bottom: 15px;
+      transition: none;
     }
     /* Navigation buttons (bottom center) */
     .nav-buttons {
