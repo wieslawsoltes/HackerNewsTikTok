@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Ensures proper scaling on mobile devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <title>HN TikTok‑Style Stream (Mobile Friendly)</title>
+  <!-- Font Awesome CSS from CDN for button icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
+  <style>
+    /* Global Reset & Mobile‑Friendly Base Styles */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      /* Disable native scrolling so we can capture swipe gestures */
+      touch-action: none;
+    }
+    /* Container holding pages */
+    .container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    /* Each page fills the viewport and slides vertically */
+    .page {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: transform 0.5s ease;
+      overflow: hidden;
+    }
+    /* Blurred background image layer */
+    .bg-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      filter: blur(10px);
+      transform: scale(1.1);
+      z-index: 0;
+      opacity: 0.5;
+    }
+    /* Foreground content card */
+    .story-content {
+      position: relative;
+      z-index: 1;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 10px;
+      padding: 20px;
+      width: 90%;
+      max-width: 800px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      /* Prevent internal scrolling so that wheel events always flip pages */
+      overflow: hidden;
+      max-height: 90%;
+      color: #333;
+    }
+    .story-content h2 {
+      margin-top: 0;
+      font-size: 1.5em;
+    }
+    .story-content a {
+      color: #0077cc;
+      text-decoration: none;
+    }
+    /* Preview image inside the content card */
+    .preview-img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: cover;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+    /* Navigation buttons (bottom center) */
+    .nav-buttons {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      gap: 20px;
+    }
+    .nav-buttons button {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.8);
+      padding: 10px 20px;
+      font-size: 20px;
+      cursor: pointer;
+      transition: opacity 0.3s;
+      opacity: 0.7;
+    }
+    .nav-buttons button:hover {
+      opacity: 1;
+    }
+    /* Top right: HN external link icon */
+    .hn-link-icon {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      padding: 8px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      color: rgba(255, 255, 255, 0.8);
+    }
+    .hn-link-icon i {
+      font-size: 20px;
+    }
+    /* Bottom right: HN info (rank and comments) */
+    .hn-info {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      padding: 5px 10px;
+      font-size: 14px;
+      z-index: 2;
+      color: rgba(255, 255, 255, 0.8);
+    }
+    /* Feed menu toggle (hamburger icon in top left) */
+    .feed-menu-toggle {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 20;
+      cursor: pointer;
+      background: transparent;
+      padding: 8px;
+    }
+    .feed-menu-toggle i {
+      font-size: 24px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+    /* Refresh button (next to menu toggle, top left) */
+    #refreshBtn {
+      position: fixed;
+      top: 10px;
+      left: 60px;
+      z-index: 20;
+      cursor: pointer;
+      background: transparent;
+      padding: 8px;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 24px;
+      transition: opacity 0.3s;
+      opacity: 0.7;
+    }
+    #refreshBtn:hover {
+      opacity: 1;
+    }
+    /* Feed menu dropdown */
+    .feed-menu {
+      position: fixed;
+      top: 60px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 5px;
+      padding: 10px;
+      z-index: 20;
+      display: none;
+    }
+    .feed-menu ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .feed-menu li {
+      margin: 5px 0;
+    }
+    .feed-menu li a {
+      text-decoration: none;
+      color: #0077cc;
+      font-weight: bold;
+    }
+    /* Media Query for small screens (mobile phones) */
+    @media (max-width: 600px) {
+      .story-content {
+        width: 95%;
+        padding: 15px;
+      }
+      .story-content h2 {
+        font-size: 1.3em;
+      }
+      .preview-img {
+        max-height: 200px;
+      }
+      .nav-buttons {
+        bottom: 15px;
+      }
+      .nav-buttons button {
+        padding: 12px 24px;
+        font-size: 24px;
+      }
+      .hn-link-icon {
+        top: 8px;
+        right: 8px;
+        padding: 10px;
+      }
+      .hn-link-icon i {
+        font-size: 24px;
+      }
+      .hn-info {
+        bottom: 8px;
+        right: 8px;
+        font-size: 16px;
+        padding: 8px 12px;
+      }
+      .feed-menu-toggle {
+        top: 8px;
+        left: 8px;
+        padding: 10px;
+      }
+      .feed-menu-toggle i {
+        font-size: 28px;
+      }
+      #refreshBtn {
+        top: 8px;
+        left: 60px;
+        font-size: 28px;
+      }
+      .feed-menu {
+        top: 55px;
+        left: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Feed menu toggle (hamburger icon) and refresh button -->
+  <div id="feedMenuToggle" class="feed-menu-toggle">
+    <i class="fas fa-bars"></i>
+  </div>
+  <div id="refreshBtn">
+    <i class="fas fa-sync-alt"></i>
+  </div>
+  <!-- Feed menu dropdown -->
+  <div id="feedMenu" class="feed-menu">
+    <ul>
+      <li><a href="#" data-feed="top">Top</a></li>
+      <li><a href="#" data-feed="new">New</a></li>
+      <li><a href="#" data-feed="best">Best</a></li>
+      <li><a href="#" data-feed="ask">Ask</a></li>
+      <li><a href="#" data-feed="show">Show</a></li>
+      <li><a href="#" data-feed="job">Jobs</a></li>
+    </ul>
+  </div>
+
+  <!-- Container for story pages -->
+  <div id="container" class="container"></div>
+
+  <!-- Navigation buttons (bottom center) -->
+  <div class="nav-buttons">
+    <button id="prevBtn" title="Previous"><i class="fas fa-chevron-up"></i></button>
+    <button id="nextBtn" title="Next"><i class="fas fa-chevron-down"></i></button>
+  </div>
+
+  <script>
+    /********************
+     * GLOBAL VARIABLES *
+     ********************/
+    const container = document.getElementById('container');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const feedMenuToggle = document.getElementById('feedMenuToggle');
+    const feedMenu = document.getElementById('feedMenu');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    let currentIndex = 0;       // Current page index
+    let stories = [];           // Loaded story objects
+    let storyIds = [];          // IDs for current feed
+    let currentBatchIndex = 0;  // For batch loading
+    const batchSize = 10;       // Stories per batch
+    let currentFeed = 'top';    // Default feed
+
+    const feedEndpoints = {
+      top: 'https://hacker-news.firebaseio.com/v0/topstories.json',
+      new: 'https://hacker-news.firebaseio.com/v0/newstories.json',
+      best: 'https://hacker-news.firebaseio.com/v0/beststories.json',
+      ask: 'https://hacker-news.firebaseio.com/v0/askstories.json',
+      show: 'https://hacker-news.firebaseio.com/v0/showstories.json',
+      job: 'https://hacker-news.firebaseio.com/v0/jobstories.json'
+    };
+
+    /***********************
+     * RENDERING FUNCTIONS *
+     ***********************/
+    function renderPage(index) {
+      const pages = document.querySelectorAll('.page');
+      pages.forEach((page, i) => {
+        if (i === index) {
+          page.style.transform = 'translateY(0)';
+        } else if (i < index) {
+          page.style.transform = 'translateY(-100%)';
+        } else {
+          page.style.transform = 'translateY(100%)';
+        }
+      });
+    }
+
+    /**
+     * Create a page element for a Hacker News story.
+     * The page includes:
+     *  - A blurred background layer.
+     *  - A content card (with optional preview image and description).
+     *  - A top‑right icon linking to the HN item.
+     *  - A bottom‑right overlay showing the story’s rank and comment count.
+     */
+    function createPage(story) {
+      const page = document.createElement('div');
+      page.classList.add('page');
+
+      // Blurred background layer
+      const bgDiv = document.createElement('div');
+      bgDiv.classList.add('bg-image');
+      page.appendChild(bgDiv);
+
+      // Content card with story details
+      const contentDiv = document.createElement('div');
+      contentDiv.classList.add('story-content');
+      contentDiv.innerHTML = `
+        <h2>${story.title || 'No Title'}</h2>
+        <p>by <strong>${story.by || 'Unknown'}</strong> | ${story.score || 0} points</p>
+        <p>${story.url ? `<a href="${story.url}" target="_blank">${story.url}</a>` : 'No link available'}</p>
+      `;
+      page.appendChild(contentDiv);
+
+      // Top right: HN link icon (opens the HN comments page)
+      const hnLink = document.createElement('a');
+      hnLink.classList.add('hn-link-icon');
+      hnLink.href = `https://news.ycombinator.com/item?id=${story.id}`;
+      hnLink.target = '_blank';
+      hnLink.innerHTML = `<i class="fas fa-external-link-alt"></i>`;
+      page.appendChild(hnLink);
+
+      // Bottom right: HN info (Rank and Comments)
+      const rank = stories.indexOf(story) + 1;
+      const hnInfo = document.createElement('div');
+      hnInfo.classList.add('hn-info');
+      hnInfo.textContent = `#${rank} | ${story.descendants || 0} comments`;
+      page.appendChild(hnInfo);
+
+      // If a URL exists, fetch preview metadata using Microlink
+      if (story.url) {
+        fetchPreviewData(story.url).then(previewData => {
+          if (previewData && previewData.image && previewData.image.url) {
+            const imageUrl = previewData.image.url;
+            // Set the blurred background image
+            bgDiv.style.backgroundImage = `url('${imageUrl}')`;
+            // Insert a visible preview image at the top of the content card
+            const imgEl = document.createElement('img');
+            imgEl.classList.add('preview-img');
+            imgEl.src = imageUrl;
+            imgEl.alt = previewData.title || story.title || 'Preview Image';
+            contentDiv.insertBefore(imgEl, contentDiv.firstChild);
+            // Optionally, add a description if available
+            if (previewData.description) {
+              const descP = document.createElement('p');
+              descP.textContent = previewData.description;
+              contentDiv.appendChild(descP);
+            }
+          }
+        }).catch(err => {
+          console.error('Error fetching preview data:', err);
+        });
+      }
+      return page;
+    }
+
+    /**
+     * Fetch preview metadata for a URL using the Microlink API.
+     * Returns an object containing metadata (image, description, etc.)
+     */
+    async function fetchPreviewData(url) {
+      try {
+        const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&meta=true`;
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        if (data && data.data) {
+          return data.data;
+        }
+      } catch (error) {
+        console.error('Error in fetchPreviewData:', error);
+      }
+      return null;
+    }
+
+    /**************************
+     * FETCHING & BATCH LOGIC *
+     **************************/
+    async function loadNextBatch() {
+      if (currentBatchIndex >= storyIds.length) return;
+      const idsToLoad = storyIds.slice(currentBatchIndex, currentBatchIndex + batchSize);
+      currentBatchIndex += batchSize;
+
+      // Fetch story details concurrently
+      const promises = idsToLoad.map(id =>
+        fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).then(res => res.json())
+      );
+      try {
+        const newStories = await Promise.all(promises);
+        newStories.forEach(story => {
+          if (story && story.title) {
+            stories.push(story);
+            const page = createPage(story);
+            container.appendChild(page);
+          }
+        });
+        renderPage(currentIndex);
+      } catch (error) {
+        console.error('Error loading batch:', error);
+      }
+    }
+
+    async function fetchStoryIds(feed) {
+      try {
+        const res = await fetch(feedEndpoints[feed]);
+        storyIds = await res.json();
+        // Reset for new feed
+        currentBatchIndex = 0;
+        currentIndex = 0;
+        stories = [];
+        container.innerHTML = '';
+        loadNextBatch();
+      } catch (error) {
+        console.error('Error fetching story IDs:', error);
+      }
+    }
+
+    /***********************
+     * NAVIGATION HANDLERS *
+     ***********************/
+    function goToNextPage() {
+      if (currentIndex < stories.length - 1) {
+        currentIndex++;
+        renderPage(currentIndex);
+        checkAndLoadMore();
+      }
+    }
+    function goToPrevPage() {
+      if (currentIndex > 0) {
+        currentIndex--;
+        renderPage(currentIndex);
+      }
+    }
+    function checkAndLoadMore() {
+      if (currentIndex >= stories.length - 3 && currentBatchIndex < storyIds.length) {
+        loadNextBatch();
+      }
+    }
+    // Refresh current feed
+    function refreshFeed() {
+      fetchStoryIds(currentFeed);
+    }
+
+    /************************
+     * EVENT LISTENERS SETUP *
+     ************************/
+    // Button navigation
+    prevBtn.addEventListener('click', goToPrevPage);
+    nextBtn.addEventListener('click', goToNextPage);
+    // Keyboard navigation (arrow keys)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp') goToPrevPage();
+      else if (e.key === 'ArrowDown') goToNextPage();
+    });
+    // Touch swipe navigation for mobile devices
+    let touchStartY = null;
+    document.addEventListener('touchstart', e => {
+      touchStartY = e.changedTouches[0].screenY;
+    });
+    document.addEventListener('touchend', e => {
+      if (touchStartY === null) return;
+      const touchEndY = e.changedTouches[0].screenY;
+      const diff = touchStartY - touchEndY;
+      // If on the first post, a pull-down (swipe down) triggers a refresh
+      if (currentIndex === 0 && diff < -50) {
+        refreshFeed();
+      } else if (diff > 0) {
+        // Swiping down (positive diff) moves to the next article
+        goToNextPage();
+      } else if (diff < 0) {
+        // Swiping up (negative diff) moves to the previous article
+        goToPrevPage();
+      }
+      touchStartY = null;
+    });
+    // Pointer wheel navigation – each wheel event moves one article:
+    let lastWheelTime = 0;
+    document.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const now = Date.now();
+      if (now - lastWheelTime < 600) return;
+      lastWheelTime = now;
+      // For each wheel event with any positive deltaY, move to next; negative deltaY moves to previous
+      if (e.deltaY > 0) goToNextPage();
+      else if (e.deltaY < 0) goToPrevPage();
+    }, { passive: false, capture: true });
+    // Feed menu toggle (hamburger button)
+    feedMenuToggle.addEventListener('click', () => {
+      feedMenu.style.display = (feedMenu.style.display === 'block') ? 'none' : 'block';
+    });
+    // Refresh button click event
+    refreshBtn.addEventListener('click', refreshFeed);
+    // Feed menu selection: load the selected feed
+    feedMenu.addEventListener('click', (e) => {
+      if (e.target.tagName.toLowerCase() === 'a') {
+        e.preventDefault();
+        const selectedFeed = e.target.getAttribute('data-feed');
+        if (selectedFeed && selectedFeed !== currentFeed) {
+          currentFeed = selectedFeed;
+          feedMenu.style.display = 'none';
+          fetchStoryIds(currentFeed);
+        }
+      }
+    });
+
+    /***********************
+     * INITIALIZE THE APP  *
+     ***********************/
+    fetchStoryIds(currentFeed);
+  </script>
+</body>
+</html>
