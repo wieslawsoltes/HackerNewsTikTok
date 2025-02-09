@@ -6,6 +6,7 @@
   <title>HN TikTok‑Style Stream (Fast Touch Navigation)</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
   <style>
+    /* Base layout */
     html, body {
       margin: 0;
       padding: 0;
@@ -17,11 +18,13 @@
       color: #fff;
       touch-action: none;
     }
+    /* The container for swipable pages */
     .container {
       position: relative;
       width: 100%;
       height: 100%;
     }
+    /* Each story page */
     .page {
       position: absolute;
       top: 0;
@@ -33,11 +36,11 @@
       align-items: center;
       transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
-      /* Force GPU acceleration and establish a new stacking context */
       will-change: transform;
       transform: translateZ(0);
       isolation: isolate;
     }
+    /* Background image for a page – increased blur and dark overlay for better contrast */
     .bg-image {
       position: absolute;
       top: 0;
@@ -46,33 +49,34 @@
       height: 100%;
       background-size: cover;
       background-position: center;
-      filter: blur(10px);
+      filter: blur(15px);
       transform: scale(1.1);
-      /* Set z-index to -1 so that it remains behind the content */
       z-index: -1;
       opacity: 1;
       transition: filter 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
       will-change: filter;
+      background-color: rgba(0, 0, 0, 0.5);
+      background-blend-mode: multiply;
     }
+    /* The story card (white content area) with extra vertical margin */
     .story-content {
       position: relative;
       z-index: 1;
       background: rgba(255, 255, 255, 0.95);
       border-radius: 10px;
       padding: 20px;
+      margin: 20px auto;  /* extra margin on top and bottom */
       width: 90%;
       max-width: 800px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
       overflow: hidden;
-      max-height: 90%;
+      max-height: 80vh;
       color: #333;
       transition: none !important;
     }
-    /* Disable transitions on most children… */
     .story-content * {
       transition: none !important;
     }
-    /* …except for the preview image which should fade in */
     .preview-img {
       width: 100%;
       max-height: 300px;
@@ -82,97 +86,87 @@
       opacity: 0;
       transition: opacity 0.5s ease-in !important;
     }
-    /* Once the page has loaded its image, show the preview */
     .page.image-loaded .preview-img {
       opacity: 1;
     }
-    .nav-buttons {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-      display: flex;
-      gap: 20px;
-    }
-    .nav-buttons button {
-      background: transparent;
-      border: none;
-      color: rgba(255, 255, 255, 0.8);
-      padding: 10px 20px;
-      font-size: 20px;
-      cursor: pointer;
-      transition: none;
-      opacity: 0.7;
-    }
-    .hn-link-icon {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: transparent;
-      border: none;
-      padding: 8px;
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 2;
-      color: rgba(255, 255, 255, 0.8);
-      transition: none;
-    }
-    .hn-link-icon i {
-      font-size: 20px;
-    }
-    .hn-info {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      background: transparent;
-      border: none;
-      padding: 5px 10px;
-      font-size: 14px;
-      z-index: 2;
-      color: rgba(255, 255, 255, 0.8);
-      transition: none;
-    }
+    /* Fixed top controls */
     .feed-menu-toggle {
       position: fixed;
       top: 10px;
       left: 10px;
-      z-index: 20;
+      z-index: 30;
       cursor: pointer;
-      background: transparent;
+      background: none;
       padding: 8px;
-      transition: none;
+      color: white;
+      text-shadow: 0 0 3px black;
     }
     .feed-menu-toggle i {
       font-size: 24px;
-      color: rgba(255, 255, 255, 0.8);
     }
     #refreshBtn {
       position: fixed;
       top: 10px;
       left: 60px;
-      z-index: 20;
+      z-index: 30;
       cursor: pointer;
-      background: transparent;
+      background: none;
       padding: 8px;
-      color: rgba(255, 255, 255, 0.8);
+      color: white;
       font-size: 24px;
-      transition: none;
-      opacity: 0.7;
+      opacity: 0.9;
+      text-shadow: 0 0 3px black;
     }
+    /* Global fixed HN link at top right */
+    #globalHNLink {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      text-decoration: none;
+      z-index: 30;
+      color: white;
+      font-size: 20px;
+      text-shadow: 0 0 3px black;
+    }
+    /* Global fixed comments button at bottom right */
+    #globalCommentsButton {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      font-size: 14px;
+      padding: 5px 10px;
+      z-index: 30;
+      color: white;
+      cursor: pointer;
+      text-shadow: 0 0 3px black;
+    }
+    /* Navigation buttons container – fixed at bottom left, horizontally stacked */
+    .nav-buttons {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      gap: 10px;
+      z-index: 30;
+    }
+    .nav-buttons button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    /* Feed menu (appears below top controls) */
     .feed-menu {
       position: fixed;
       top: 60px;
       left: 10px;
-      background: rgba(0, 0, 0, 0.6);
+      background: none;
       border: none;
       border-radius: 5px;
       padding: 10px;
-      z-index: 20;
+      z-index: 30;
       display: none;
-      transition: none;
     }
     .feed-menu ul {
       list-style: none;
@@ -181,17 +175,89 @@
     }
     .feed-menu li a {
       text-decoration: none;
-      color: rgba(255, 255, 255, 0.8);
+      color: white;
       font-weight: bold;
       display: block;
       padding: 8px 12px;
-      transition: none;
-      opacity: 0.7;
+      opacity: 0.9;
+      text-shadow: 0 0 3px black;
+    }
+    /* Post title link inside story card */
+    .story-content h2 a {
+      color: inherit;
+      text-decoration: none;
+    }
+    /* Comments overlay covers full viewport */
+    #threadOverlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      touch-action: none;
+    }
+    /* Dialog container for comments overlay – stays centered */
+    .thread-dialog {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 600px;
+      width: 90%;
+      max-height: 80%;
+      background: #fff;
+      color: #000;
+      border-radius: 10px;
+      overflow: hidden;
+      z-index: 101;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    /* Scrollable content area inside dialog */
+    .thread-content {
+      padding: 20px;
+      height: calc(100% - 40px);
+      overflow-y: auto;
+    }
+    /* Close button rendered as a plain icon – no background – fixed to top-right of dialog */
+    .close-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: #000;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 10;
+    }
+    /* Compact comment tree styling */
+    .comment-tree {
+      margin-top: 10px;
+    }
+    .comment {
+      border-left: 1px solid #ccc;
+      margin-left: 10px;
+      padding-left: 5px;
+      margin-bottom: 5px;
+    }
+    .comment-author {
+      font-weight: bold;
+      margin-bottom: 3px;
+      font-size: 14px;
+    }
+    .comment-body {
+      font-size: 13px;
+      line-height: 1.4;
+      word-break: break-word;
+      white-space: normal;
     }
     @media (max-width: 600px) {
       .story-content {
         width: 90%;
-        margin: 0 auto;
+        margin: 20px auto;
         padding: 15px;
       }
       .story-content h2 {
@@ -200,24 +266,15 @@
       .preview-img {
         max-height: 200px;
       }
-      .nav-buttons {
-        bottom: 15px;
-      }
-      .nav-buttons button {
-        padding: 12px 24px;
-        font-size: 24px;
-      }
-      .hn-link-icon {
+      /* Adjust fixed controls for small screens */
+      #globalHNLink {
         top: 8px;
         right: 8px;
-        padding: 10px;
-      }
-      .hn-link-icon i {
         font-size: 24px;
       }
-      .hn-info {
-        bottom: 8px;
-        right: 8px;
+      #globalCommentsButton {
+        bottom: 20px;
+        right: 20px;
         font-size: 16px;
         padding: 8px 12px;
       }
@@ -238,10 +295,25 @@
         top: 55px;
         left: 8px;
       }
+      .nav-buttons {
+        bottom: 20px;
+        left: 10px;
+      }
+      .nav-buttons button {
+        font-size: 28px;
+      }
+    }
+    /* Global button style */
+    button {
+      background: none;
+      border: none;
+      color: white;
+      text-shadow: 0 0 3px black;
     }
   </style>
 </head>
 <body>
+  <!-- Top fixed controls -->
   <div id="feedMenuToggle" class="feed-menu-toggle">
     <i class="fas fa-bars"></i>
   </div>
@@ -258,12 +330,26 @@
       <li><a href="#" data-feed="job">Jobs</a></li>
     </ul>
   </div>
+  <!-- The swipable pages container -->
   <div id="container" class="container"></div>
+  
+  <!-- Navigation buttons container – fixed at bottom left, horizontally stacked -->
   <div class="nav-buttons">
     <button id="prevBtn" title="Previous"><i class="fas fa-chevron-up"></i></button>
     <button id="nextBtn" title="Next"><i class="fas fa-chevron-down"></i></button>
   </div>
+  
+  <!-- Global fixed controls that do not translate -->
+  <a id="globalHNLink" href="#" target="_blank"><i class="fas fa-external-link-alt"></i></a>
+  <div id="globalCommentsButton">#0 | 0 comments</div>
+
+  <!-- (The comments overlay is created dynamically.) -->
+
   <script>
+    // Global fixed controls for HN link and comments button.
+    const globalHNLink = document.getElementById('globalHNLink');
+    const globalCommentsButton = document.getElementById('globalCommentsButton');
+
     const container = document.getElementById('container');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
@@ -291,7 +377,17 @@
       job: 'https://hacker-news.firebaseio.com/v0/jobstories.json'
     };
 
-    // Render pages using the container’s live children.
+    // Update global fixed controls for the current story.
+    function updateGlobalControls() {
+      const currentStory = stories[currentIndex];
+      if (currentStory) {
+        globalHNLink.href = `https://news.ycombinator.com/item?id=${currentStory.id}`;
+        globalCommentsButton.textContent = `#${currentIndex + 1} | ${currentStory.descendants || 0} comments`;
+        globalCommentsButton.onclick = () => openThreadOverlay(currentStory);
+      }
+    }
+
+    // Render pages (swipe translation) and update global controls.
     function renderPage(index) {
       const pages = container.children;
       for (let i = 0; i < pages.length; i++) {
@@ -303,14 +399,12 @@
           pages[i].style.transform = 'translateY(100%)';
         }
       }
+      updateGlobalControls();
     }
 
-    // Create (or reuse) a page for the given story.
+    // Create or reuse a page for a given story.
     function createPage(story) {
-      if (renderedPagesCache[story.id]) {
-        return renderedPagesCache[story.id];
-      }
-
+      if (renderedPagesCache[story.id]) return renderedPagesCache[story.id];
       const page = document.createElement('div');
       page.classList.add('page');
 
@@ -320,46 +414,45 @@
 
       const contentDiv = document.createElement('div');
       contentDiv.classList.add('story-content');
-      contentDiv.innerHTML = `
-        <h2>${story.title || 'No Title'}</h2>
-        <p>by <strong>${story.by || 'Unknown'}</strong> | ${story.score || 0} points</p>
-        <p>${story.url ? `<a href="${story.url}" target="_blank">${story.url}</a>` : 'No link available'}</p>
-      `;
+      
+      if (story.url) {
+        contentDiv.innerHTML = `
+          <h2><a href="${story.url}" target="_blank">${story.title || 'No Title'}</a></h2>
+          <p>by <strong>${story.by || 'Unknown'}</strong> | ${story.score || 0} points</p>
+        `;
+      } else {
+        contentDiv.innerHTML = `
+          <h2>${story.title || 'No Title'}</h2>
+          <p>by <strong>${story.by || 'Unknown'}</strong> | ${story.score || 0} points</p>
+        `;
+      }
       page.appendChild(contentDiv);
 
-      const hnLink = document.createElement('a');
-      hnLink.classList.add('hn-link-icon');
-      hnLink.href = `https://news.ycombinator.com/item?id=${story.id}`;
-      hnLink.target = '_blank';
-      hnLink.innerHTML = `<i class="fas fa-external-link-alt"></i>`;
-      page.appendChild(hnLink);
-
-      const rank = stories.indexOf(story) + 1;
-      const hnInfo = document.createElement('div');
-      hnInfo.classList.add('hn-info');
-      hnInfo.textContent = `#${rank} | ${story.descendants || 0} comments`;
-      page.appendChild(hnInfo);
-
-      // If the story has a URL, fetch its preview data.
+      // Try to fetch preview data concurrently.
       if (story.url) {
         fetchPreviewData(story.url).then(previewData => {
-          if (previewData && previewData.image && previewData.image.url) {
-            const imageUrl = previewData.image.url;
+          let imageUrl = null;
+          if (previewData) {
+            if (previewData.image && previewData.image.url) {
+              imageUrl = previewData.image.url;
+            } else if (previewData.screenshot && previewData.screenshot.url) {
+              imageUrl = previewData.screenshot.url;
+            }
+          }
+          if (!imageUrl) {
+            // Fallback using an alternative screenshot service (WordPress mShots)
+            imageUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(story.url)}?w=800`;
+          }
+          if (imageUrl) {
             bgDiv.style.backgroundImage = `url('${imageUrl}')`;
             const imgEl = document.createElement('img');
             imgEl.classList.add('preview-img');
             imgEl.src = imageUrl;
-            imgEl.alt = previewData.title || story.title || 'Preview Image';
-            // When the image loads, add a class so the preview image becomes visible.
-            imgEl.onload = () => {
-              page.classList.add('image-loaded');
-            };
-            // Also check immediately if the image is already loaded (from cache)
-            if (imgEl.complete) {
-              page.classList.add('image-loaded');
-            }
+            imgEl.alt = (previewData && previewData.title) ? previewData.title : (story.title || 'Preview Image');
+            imgEl.onload = () => page.classList.add('image-loaded');
+            if (imgEl.complete) page.classList.add('image-loaded');
             contentDiv.insertBefore(imgEl, contentDiv.firstChild);
-            if (previewData.description) {
+            if (previewData && previewData.description) {
               const descP = document.createElement('p');
               descP.textContent = previewData.description;
               contentDiv.appendChild(descP);
@@ -368,26 +461,41 @@
         }).catch(err => {
           console.error('Error fetching preview data:', err);
         });
+      } else {
+        // For non-link posts, fall back to rendering a screenshot of the HN page.
+        let fallbackUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent('https://news.ycombinator.com/item?id=' + story.id)}?w=800`;
+        bgDiv.style.backgroundImage = `url('${fallbackUrl}')`;
+        const imgEl = document.createElement('img');
+        imgEl.classList.add('preview-img');
+        imgEl.src = fallbackUrl;
+        imgEl.alt = story.title || 'Preview Image';
+        imgEl.onload = () => page.classList.add('image-loaded');
+        if (imgEl.complete) page.classList.add('image-loaded');
+        contentDiv.insertBefore(imgEl, contentDiv.firstChild);
       }
-
       renderedPagesCache[story.id] = page;
       return page;
     }
 
+    // Fetch preview data concurrently from two Microlink endpoints.
     async function fetchPreviewData(url) {
-      if (previewCache[url]) {
-        return Promise.resolve(previewCache[url]);
-      }
+      if (previewCache[url]) return previewCache[url];
       try {
-        const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&meta=true`;
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        if (data && data.data) {
-          previewCache[url] = data.data;
-          return data.data;
+        const metaPromise = fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}&meta=true`).then(res => res.json());
+        const screenshotPromise = fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true`).then(res => res.json());
+        const [metaData, screenshotData] = await Promise.all([metaPromise, screenshotPromise]);
+        let data = null;
+        if (metaData && metaData.data && metaData.data.image && metaData.data.image.url) {
+          data = metaData.data;
+        } else if (screenshotData && screenshotData.data && screenshotData.data.screenshot && screenshotData.data.screenshot.url) {
+          data = screenshotData.data;
+        }
+        if (data) {
+          previewCache[url] = data;
+          return data;
         }
       } catch (error) {
-        console.error('Error in fetchPreviewData:', error);
+        console.error('Error fetching preview data concurrently:', error);
       }
       return null;
     }
@@ -396,15 +504,11 @@
       if (currentBatchIndex >= storyIds.length) return;
       const idsToLoad = storyIds.slice(currentBatchIndex, currentBatchIndex + batchSize);
       currentBatchIndex += batchSize;
-
       const promises = idsToLoad.map(id => {
-        if (storyCache[id]) {
-          return Promise.resolve(storyCache[id]);
-        } else {
-          return fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`)
-            .then(res => res.json())
-            .then(data => { storyCache[id] = data; return data; });
-        }
+        if (storyCache[id]) return Promise.resolve(storyCache[id]);
+        return fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`)
+          .then(res => res.json())
+          .then(data => { storyCache[id] = data; return data; });
       });
       try {
         const newStories = await Promise.all(promises);
@@ -459,9 +563,7 @@
     }
 
     let touchStartY = null;
-    document.addEventListener('touchstart', (e) => {
-      touchStartY = e.changedTouches[0].screenY;
-    });
+    document.addEventListener('touchstart', (e) => { touchStartY = e.changedTouches[0].screenY; });
     document.addEventListener('touchmove', (e) => {
       if (touchStartY === null) return;
       const currentY = e.changedTouches[0].screenY;
@@ -475,13 +577,9 @@
       const currentY = e.changedTouches[0].screenY;
       const delta = currentY - touchStartY;
       Array.from(container.children).forEach(page => page.style.transition = '');
-      if (delta > 50) {
-        goToPrevPage();
-      } else if (delta < -50) {
-        goToNextPage();
-      } else {
-        renderPage(currentIndex);
-      }
+      if (delta > 50) goToPrevPage();
+      else if (delta < -50) goToNextPage();
+      else renderPage(currentIndex);
       touchStartY = null;
     });
     function updateDragging(percent) {
@@ -492,7 +590,7 @@
         pages[currentIndex].style.transform = `translateY(${percent}%)`;
         const bg = pages[currentIndex].querySelector('.bg-image');
         if (bg) {
-          const newBlur = 10 - progress * 10;
+          const newBlur = 15 - progress * 15;
           bg.style.filter = `blur(${newBlur}px)`;
           bg.style.opacity = 1;
         }
@@ -502,7 +600,7 @@
         pages[currentIndex + 1].style.transform = `translateY(${100 + percent}%)`;
         const bg = pages[currentIndex + 1].querySelector('.bg-image');
         if (bg) {
-          const newBlur = progress * 10;
+          const newBlur = progress * 15;
           bg.style.filter = `blur(${newBlur}px)`;
           bg.style.opacity = 1;
         }
@@ -512,7 +610,7 @@
         pages[currentIndex - 1].style.transform = `translateY(${-100 + percent}%)`;
         const bg = pages[currentIndex - 1].querySelector('.bg-image');
         if (bg) {
-          const newBlur = progress * 10;
+          const newBlur = progress * 15;
           bg.style.filter = `blur(${newBlur}px)`;
           bg.style.opacity = 1;
         }
@@ -535,19 +633,14 @@
       else if (e.deltaY < 0) goToPrevPage();
     }, { passive: false, capture: true });
     feedMenuToggle.addEventListener('click', () => {
-      if (getComputedStyle(feedMenu).display === 'none') {
-        feedMenu.style.display = 'block';
-      } else {
-        feedMenu.style.display = 'none';
-      }
+      feedMenu.style.display = (getComputedStyle(feedMenu).display === 'none') ? 'block' : 'none';
     });
     refreshBtn.addEventListener('click', refreshFeed);
     feedMenu.addEventListener('click', (e) => {
       e.preventDefault();
       let target = e.target;
-      if (target.tagName.toLowerCase() !== 'a' && target.parentElement && target.parentElement.tagName.toLowerCase() === 'a') {
+      if (target.tagName.toLowerCase() !== 'a' && target.parentElement && target.parentElement.tagName.toLowerCase() === 'a')
         target = target.parentElement;
-      }
       if (target && target.tagName.toLowerCase() === 'a') {
         const selectedFeed = target.getAttribute('data-feed');
         if (selectedFeed && selectedFeed !== currentFeed) {
@@ -564,9 +657,7 @@
           if (entry.isIntersecting) {
             const pages = Array.from(container.children);
             const pageIndex = pages.indexOf(entry.target);
-            if (pageIndex === stories.length - 3) {
-              loadNextBatch();
-            }
+            if (pageIndex === stories.length - 3) loadNextBatch();
           }
         });
       }, {
@@ -574,26 +665,95 @@
         rootMargin: '0px',
         threshold: 0.1
       });
-
-      Array.from(container.children).forEach(page => {
-        observer.observe(page);
-      });
+      Array.from(container.children).forEach(page => observer.observe(page));
     }
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js').then(registration => {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          console.log('ServiceWorker registration successful with scope:', registration.scope);
         }, err => {
-          console.log('ServiceWorker registration failed: ', err);
+          console.log('ServiceWorker registration failed:', err);
         });
       });
     }
 
     fetchStoryIds(currentFeed);
   </script>
+
+  <!-- Progressive and Concurrent Comments Overlay / Thread functions -->
   <script>
-    // Service Worker script
+    // Fetch a single comment from Hacker News.
+    function fetchComment(id) {
+      return fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`)
+             .then(response => response.json());
+    }
+    
+    // Build the comment tree progressively.
+    async function buildCommentTree(commentIds) {
+      const container = document.createElement('div');
+      container.classList.add('comment-tree');
+      commentIds.forEach(id => {
+        fetchComment(id)
+          .then(async commentData => {
+            if (!commentData || commentData.deleted || commentData.dead) return;
+            const commentElem = document.createElement('div');
+            commentElem.classList.add('comment');
+            commentElem.innerHTML = `
+              <div class="comment-author">${commentData.by || 'unknown'}</div>
+              <div class="comment-body">${commentData.text || ''}</div>
+            `;
+            container.appendChild(commentElem);
+            if (commentData.kids && commentData.kids.length > 0) {
+              const childTree = await buildCommentTree(commentData.kids);
+              if(childTree) commentElem.appendChild(childTree);
+            }
+          })
+          .catch(error => console.error('Error fetching comment:', error));
+      });
+      return container;
+    }
+    
+    // Open the comments overlay using a dialog structure.
+    function openThreadOverlay(story) {
+      let overlay = document.getElementById('threadOverlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'threadOverlay';
+        overlay.innerHTML = `
+          <div class="thread-dialog">
+            <button id="closeThreadOverlay" class="close-button"><i class="fas fa-times"></i></button>
+            <div id="threadContent" class="thread-content">
+              <div id="threadLoading" style="margin-top:40px; text-align:center;">Loading comments...</div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (e) => {
+          if(e.target.id === 'threadOverlay') overlay.style.display = 'none';
+        });
+      }
+      overlay.style.display = 'block';
+      const closeBtn = overlay.querySelector('#closeThreadOverlay');
+      closeBtn.addEventListener('click', () => { overlay.style.display = 'none'; });
+      const threadContent = overlay.querySelector('#threadContent');
+      threadContent.innerHTML = `<div id="threadLoading" style="margin-top:40px; text-align:center;">Loading comments...</div>`;
+      
+      if (story.kids && story.kids.length > 0) {
+        buildCommentTree(story.kids).then(commentTree => {
+          threadContent.innerHTML = '';
+          threadContent.appendChild(commentTree);
+        }).catch(err => {
+          threadContent.innerHTML = `<div style="text-align:center;">Error loading comments.</div>`;
+        });
+      } else {
+        threadContent.innerHTML = `<div style="text-align:center;">No comments available.</div>`;
+      }
+    }
+  </script>
+
+  <!-- Service Worker registration -->
+  <script>
     self.addEventListener('install', event => {
       event.waitUntil(
         caches.open('hn-cache').then(cache => {
@@ -604,12 +764,9 @@
         })
       );
     });
-
     self.addEventListener('fetch', event => {
       event.respondWith(
-        caches.match(event.request).then(response => {
-          return response || fetch(event.request);
-        })
+        caches.match(event.request).then(response => response || fetch(event.request))
       );
     });
   </script>
