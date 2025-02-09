@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <!-- Ensures proper scaling on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-  <title>HN TikTok‑Style Stream (No Extra Transitions)</title>
+  <title>HN TikTok‑Style Stream (Fast Touch Navigation)</title>
   <!-- Font Awesome CSS from CDN for button icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
   <style>
@@ -38,11 +38,12 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      transition: transform 0.5s ease-in-out;
+      /* The transform transition is now fast and decelerates smoothly at the end */
+      transition: transform 0.3s cubic-bezier(0.33, 1, 0.68, 1);
       transition-property: transform;
       overflow: hidden;
     }
-    /* Blurred background image layer – no transitions (except via inline JS if needed) */
+    /* Blurred background image layer – no transitions */
     .bg-image {
       position: absolute;
       top: 0;
@@ -92,7 +93,7 @@
       margin-bottom: 15px;
       transition: none !important;
     }
-    /* Navigation buttons (bottom center) – disable hover transitions */
+    /* Navigation buttons (bottom center) – no extra transitions */
     .nav-buttons {
       position: fixed;
       bottom: 20px;
@@ -171,8 +172,9 @@
       color: rgba(255, 255, 255, 0.8);
       font-size: 24px;
       transition: none;
+      opacity: 0.7;
     }
-    /* Feed menu dropdown – keep its background transition disabled */
+    /* Feed menu dropdown with a semi-transparent dark background – no transition */
     .feed-menu {
       position: fixed;
       top: 60px;
@@ -509,9 +511,10 @@
       const delta = currentY - touchStartY;
       // Restore transitions for snapping
       document.querySelectorAll('.page').forEach(page => page.style.transition = '');
-      if (delta > 100) {
+      // Reduced threshold to 50px for faster response
+      if (delta > 50) {
         goToPrevPage();
-      } else if (delta < -100) {
+      } else if (delta < -50) {
         goToNextPage();
       } else {
         renderPage(currentIndex);
