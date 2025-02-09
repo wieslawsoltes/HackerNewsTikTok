@@ -33,6 +33,10 @@
       align-items: center;
       transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
+      /* Force GPU acceleration and establish a new stacking context */
+      will-change: transform;
+      transform: translateZ(0);
+      isolation: isolate;
     }
     .bg-image {
       position: absolute;
@@ -44,9 +48,11 @@
       background-position: center;
       filter: blur(10px);
       transform: scale(1.1);
-      z-index: 0;
+      /* Set z-index to -1 so that it remains behind the content */
+      z-index: -1;
       opacity: 1;
       transition: filter 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+      will-change: filter;
     }
     .story-content {
       position: relative;
@@ -62,24 +68,23 @@
       color: #333;
       transition: none !important;
     }
+    /* Disable transitions on most children… */
     .story-content * {
       transition: none !important;
     }
-    .story-content h2 {
-      margin-top: 0;
-      font-size: 1.5em;
-    }
-    .story-content a {
-      color: #0077cc;
-      text-decoration: none;
-    }
+    /* …except for the preview image which should fade in */
     .preview-img {
       width: 100%;
       max-height: 300px;
       object-fit: cover;
       border-radius: 5px;
       margin-bottom: 15px;
-      transition: none !important;
+      opacity: 0;
+      transition: opacity 0.5s ease-in !important;
+    }
+    /* Once the page has loaded its image, show the preview */
+    .page.image-loaded .preview-img {
+      opacity: 1;
     }
     .nav-buttons {
       position: fixed;
@@ -286,22 +291,24 @@
       job: 'https://hacker-news.firebaseio.com/v0/jobstories.json'
     };
 
+    // Render pages using the container’s live children.
     function renderPage(index) {
-      const pages = document.querySelectorAll('.page');
-      pages.forEach((page, i) => {
+      const pages = container.children;
+      for (let i = 0; i < pages.length; i++) {
         if (i === index) {
-          page.style.transform = 'translateY(0)';
+          pages[i].style.transform = 'translateY(0)';
         } else if (i < index) {
-          page.style.transform = 'translateY(-100%)';
+          pages[i].style.transform = 'translateY(-100%)';
         } else {
-          page.style.transform = 'translateY(100%)';
+          pages[i].style.transform = 'translateY(100%)';
         }
-      });
+      }
     }
 
+    // Create (or reuse) a page for the given story.
     function createPage(story) {
       if (renderedPagesCache[story.id]) {
-        return renderedPagesCache[story.id].cloneNode(true);
+        return renderedPagesCache[story.id];
       }
 
       const page = document.createElement('div');
@@ -333,6 +340,7 @@
       hnInfo.textContent = `#${rank} | ${story.descendants || 0} comments`;
       page.appendChild(hnInfo);
 
+      // If the story has a URL, fetch its preview data.
       if (story.url) {
         fetchPreviewData(story.url).then(previewData => {
           if (previewData && previewData.image && previewData.image.url) {
@@ -342,6 +350,14 @@
             imgEl.classList.add('preview-img');
             imgEl.src = imageUrl;
             imgEl.alt = previewData.title || story.title || 'Preview Image';
+            // When the image loads, add a class so the preview image becomes visible.
+            imgEl.onload = () => {
+              page.classList.add('image-loaded');
+            };
+            // Also check immediately if the image is already loaded (from cache)
+            if (imgEl.complete) {
+              page.classList.add('image-loaded');
+            }
             contentDiv.insertBefore(imgEl, contentDiv.firstChild);
             if (previewData.description) {
               const descP = document.createElement('p');
@@ -434,7 +450,6 @@
       }
     }
     function checkAndLoadMore() {
-      // Preload next few items when closer to the end
       if (currentIndex >= stories.length - 5 && currentBatchIndex < storyIds.length) {
         loadNextBatch();
       }
@@ -459,7 +474,7 @@
       if (touchStartY === null) return;
       const currentY = e.changedTouches[0].screenY;
       const delta = currentY - touchStartY;
-      document.querySelectorAll('.page').forEach(page => page.style.transition = '');
+      Array.from(container.children).forEach(page => page.style.transition = '');
       if (delta > 50) {
         goToPrevPage();
       } else if (delta < -50) {
@@ -470,7 +485,7 @@
       touchStartY = null;
     });
     function updateDragging(percent) {
-      const pages = document.querySelectorAll('.page');
+      const pages = container.children;
       const progress = Math.min(1, Math.abs(percent) / 100);
       if (pages[currentIndex]) {
         pages[currentIndex].style.transition = 'none';
@@ -479,7 +494,7 @@
         if (bg) {
           const newBlur = 10 - progress * 10;
           bg.style.filter = `blur(${newBlur}px)`;
-          bg.style.opacity = 1; /* Ensure opacity remains 1 */
+          bg.style.opacity = 1;
         }
       }
       if (percent < 0 && currentIndex < pages.length - 1 && pages[currentIndex + 1]) {
@@ -489,7 +504,7 @@
         if (bg) {
           const newBlur = progress * 10;
           bg.style.filter = `blur(${newBlur}px)`;
-          bg.style.opacity = 1; /* Ensure opacity remains 1 */
+          bg.style.opacity = 1;
         }
       }
       if (percent > 0 && currentIndex > 0 && pages[currentIndex - 1]) {
@@ -499,7 +514,7 @@
         if (bg) {
           const newBlur = progress * 10;
           bg.style.filter = `blur(${newBlur}px)`;
-          bg.style.opacity = 1; /* Ensure opacity remains 1 */
+          bg.style.opacity = 1;
         }
       }
     }
@@ -547,7 +562,8 @@
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
-            const pageIndex = Array.from(container.children).indexOf(entry.target);
+            const pages = Array.from(container.children);
+            const pageIndex = pages.indexOf(entry.target);
             if (pageIndex === stories.length - 3) {
               loadNextBatch();
             }
@@ -559,7 +575,7 @@
         threshold: 0.1
       });
 
-      document.querySelectorAll('.page').forEach(page => {
+      Array.from(container.children).forEach(page => {
         observer.observe(page);
       });
     }
@@ -583,8 +599,7 @@
         caches.open('hn-cache').then(cache => {
           return cache.addAll([
             '/',
-            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css',
-            // Add other static assets to cache
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css'
           ]);
         })
       );
