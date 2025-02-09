@@ -38,12 +38,11 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      /* The transform transition is now fast and decelerates smoothly at the end */
-      transition: transform 0.3s cubic-bezier(0.33, 1, 0.68, 1);
-      transition-property: transform;
+      /* Updated transition: longer duration and a smooth easing for a nicer slide */
+      transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
     }
-    /* Blurred background image layer – no transitions */
+    /* Blurred background image layer – now with a filter transition */
     .bg-image {
       position: absolute;
       top: 0;
@@ -56,7 +55,8 @@
       transform: scale(1.1);
       z-index: 0;
       opacity: 0.5;
-      transition: none;
+      /* Animate the change in blur during sliding */
+      transition: filter 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
     /* Foreground content card – no transitions at all */
     .story-content {
