@@ -28,7 +28,7 @@
       height: 100%;
     }
     /* Each page fills the viewport and slides vertically.
-       Only the transform property is animated with a fast, smooth, decelerating effect. */
+       Only the transform property is animated (fast, smooth, decelerating). */
     .page {
       position: absolute;
       top: 0;
@@ -42,7 +42,7 @@
       transition-property: transform;
       overflow: hidden;
     }
-    /* Blurred background image layer – no transitions */
+    /* Blurred background image layer – transitions disabled */
     .bg-image {
       position: absolute;
       top: 0;
@@ -452,6 +452,11 @@
       try {
         const res = await fetch(feedEndpoints[feed]);
         storyIds = await res.json();
+        console.log("Fetched story IDs:", storyIds);
+        if (!Array.isArray(storyIds)) {
+          console.error("storyIds is not an array:", storyIds);
+          return;
+        }
         // Reset for new feed
         currentBatchIndex = 0;
         currentIndex = 0;
@@ -470,7 +475,7 @@
       if (currentIndex < stories.length - 1) {
         currentIndex++;
         renderPage(currentIndex);
-        // Prefetch next batch if within 5 pages of the end
+        // Prefetch if within 5 pages of end
         if (currentIndex >= stories.length - 5 && currentBatchIndex < storyIds.length) {
           loadNextBatch();
         }
@@ -482,9 +487,10 @@
         renderPage(currentIndex);
       }
     }
-    /***********************
+
+    /************************
      * TOUCH DRAG INTERACTION *
-     ***********************/
+     ************************/
     let touchStartY = null;
     document.addEventListener('touchstart', (e) => {
       touchStartY = e.changedTouches[0].screenY;
@@ -503,7 +509,7 @@
       const delta = currentY - touchStartY;
       // Restore transitions for snapping
       document.querySelectorAll('.page').forEach(page => page.style.transition = '');
-      // Use a threshold of 50px for faster reaction
+      // Use threshold of 50px for faster response
       if (delta > 50) {
         goToPrevPage();
       } else if (delta < -50) {
