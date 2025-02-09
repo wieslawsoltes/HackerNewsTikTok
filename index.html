@@ -268,6 +268,7 @@
 
     const storyCache = {};
     const previewCache = {};
+    const renderedPagesCache = {};
 
     let currentIndex = 0;
     let stories = [];
@@ -299,6 +300,10 @@
     }
 
     function createPage(story) {
+      if (renderedPagesCache[story.id]) {
+        return renderedPagesCache[story.id].cloneNode(true);
+      }
+
       const page = document.createElement('div');
       page.classList.add('page');
 
@@ -348,6 +353,8 @@
           console.error('Error fetching preview data:', err);
         });
       }
+
+      renderedPagesCache[story.id] = page;
       return page;
     }
 
