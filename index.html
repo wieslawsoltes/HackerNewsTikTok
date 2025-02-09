@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Ensures proper scaling on mobile devices -->
+  <!-- Ensure proper scaling on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-  <title>HN TikTok‑Style Stream (Fast Touch Navigation)</title>
+  <title>HN TikTok‑Style Stream (Fast & Smooth Navigation)</title>
   <!-- Font Awesome CSS from CDN for button icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
   <style>
-    /* Global Reset & Mobile‑Friendly Base Styles */
+    /* Global Reset & Mobile-Friendly Base Styles */
     html, body {
       margin: 0;
       padding: 0;
@@ -28,7 +28,7 @@
       height: 100%;
     }
     /* Each page fills the viewport and slides vertically.
-       Only the transform property is animated. */
+       Only the transform property is animated with a fast, smooth, decelerating effect. */
     .page {
       position: absolute;
       top: 0;
@@ -38,8 +38,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      /* The transform transition is now fast and decelerates smoothly at the end */
-      transition: transform 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+      transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
       transition-property: transform;
       overflow: hidden;
     }
@@ -58,7 +57,7 @@
       opacity: 0.5;
       transition: none;
     }
-    /* Foreground content card – no transitions at all */
+    /* Foreground content card – no transitions */
     .story-content {
       position: relative;
       z-index: 1;
@@ -471,7 +470,10 @@
       if (currentIndex < stories.length - 1) {
         currentIndex++;
         renderPage(currentIndex);
-        checkAndLoadMore();
+        // Prefetch next batch if within 5 pages of the end
+        if (currentIndex >= stories.length - 5 && currentBatchIndex < storyIds.length) {
+          loadNextBatch();
+        }
       }
     }
     function goToPrevPage() {
@@ -480,19 +482,9 @@
         renderPage(currentIndex);
       }
     }
-    function checkAndLoadMore() {
-      if (currentIndex >= stories.length - 3 && currentBatchIndex < storyIds.length) {
-        loadNextBatch();
-      }
-    }
-    // Refresh current feed
-    function refreshFeed() {
-      fetchStoryIds(currentFeed);
-    }
-
-    /************************
+    /***********************
      * TOUCH DRAG INTERACTION *
-     ************************/
+     ***********************/
     let touchStartY = null;
     document.addEventListener('touchstart', (e) => {
       touchStartY = e.changedTouches[0].screenY;
@@ -511,7 +503,7 @@
       const delta = currentY - touchStartY;
       // Restore transitions for snapping
       document.querySelectorAll('.page').forEach(page => page.style.transition = '');
-      // Reduced threshold to 50px for faster response
+      // Use a threshold of 50px for faster reaction
       if (delta > 50) {
         goToPrevPage();
       } else if (delta < -50) {
