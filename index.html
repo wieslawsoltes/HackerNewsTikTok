@@ -2,13 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Ensures proper scaling on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
   <title>HN TikTok‑Style Stream (Fast Touch Navigation)</title>
-  <!-- Font Awesome CSS from CDN for button icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
   <style>
-    /* Global Reset & Mobile‑Friendly Base Styles */
     html, body {
       margin: 0;
       padding: 0;
@@ -18,17 +15,13 @@
       font-family: 'Helvetica Neue', Arial, sans-serif;
       background: #111;
       color: #fff;
-      /* Disable native scrolling so we can capture swipe gestures */
       touch-action: none;
     }
-    /* Container holding pages */
     .container {
       position: relative;
       width: 100%;
       height: 100%;
     }
-    /* Each page fills the viewport and slides vertically.
-       Only the transform property is animated. */
     .page {
       position: absolute;
       top: 0;
@@ -38,11 +31,9 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      /* Updated transition: longer duration and a smooth easing for a nicer slide */
       transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
     }
-    /* Blurred background image layer – now with a filter transition */
     .bg-image {
       position: absolute;
       top: 0;
@@ -54,11 +45,9 @@
       filter: blur(10px);
       transform: scale(1.1);
       z-index: 0;
-      opacity: 0.5;
-      /* Animate the change in blur during sliding */
+      opacity: 1;
       transition: filter 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
-    /* Foreground content card – no transitions at all */
     .story-content {
       position: relative;
       z-index: 1;
@@ -84,7 +73,6 @@
       color: #0077cc;
       text-decoration: none;
     }
-    /* Preview image – no transition */
     .preview-img {
       width: 100%;
       max-height: 300px;
@@ -93,7 +81,6 @@
       margin-bottom: 15px;
       transition: none !important;
     }
-    /* Navigation buttons (bottom center) – no extra transitions */
     .nav-buttons {
       position: fixed;
       bottom: 20px;
@@ -113,7 +100,6 @@
       transition: none;
       opacity: 0.7;
     }
-    /* Top right: HN external link icon – no transition */
     .hn-link-icon {
       position: absolute;
       top: 10px;
@@ -132,7 +118,6 @@
     .hn-link-icon i {
       font-size: 20px;
     }
-    /* Bottom right: HN info – no transition */
     .hn-info {
       position: absolute;
       bottom: 10px;
@@ -145,7 +130,6 @@
       color: rgba(255, 255, 255, 0.8);
       transition: none;
     }
-    /* Feed menu toggle (hamburger icon) – no transition */
     .feed-menu-toggle {
       position: fixed;
       top: 10px;
@@ -160,7 +144,6 @@
       font-size: 24px;
       color: rgba(255, 255, 255, 0.8);
     }
-    /* Refresh button – no transition */
     #refreshBtn {
       position: fixed;
       top: 10px;
@@ -174,7 +157,6 @@
       transition: none;
       opacity: 0.7;
     }
-    /* Feed menu dropdown with a semi-transparent dark background – no transition */
     .feed-menu {
       position: fixed;
       top: 60px;
@@ -201,11 +183,10 @@
       transition: none;
       opacity: 0.7;
     }
-    /* Media Query for small screens (mobile phones) */
     @media (max-width: 600px) {
       .story-content {
         width: 90%;
-        margin: 0 auto; /* Adds left/right margins on narrow screens */
+        margin: 0 auto;
         padding: 15px;
       }
       .story-content h2 {
@@ -256,14 +237,12 @@
   </style>
 </head>
 <body>
-  <!-- Feed menu toggle (hamburger icon) and refresh button -->
   <div id="feedMenuToggle" class="feed-menu-toggle">
     <i class="fas fa-bars"></i>
   </div>
   <div id="refreshBtn">
     <i class="fas fa-sync-alt"></i>
   </div>
-  <!-- Feed menu dropdown -->
   <div id="feedMenu" class="feed-menu">
     <ul>
       <li><a href="#" data-feed="top">Top</a></li>
@@ -274,20 +253,12 @@
       <li><a href="#" data-feed="job">Jobs</a></li>
     </ul>
   </div>
-
-  <!-- Container for story pages -->
   <div id="container" class="container"></div>
-
-  <!-- Navigation buttons (bottom center) -->
   <div class="nav-buttons">
     <button id="prevBtn" title="Previous"><i class="fas fa-chevron-up"></i></button>
     <button id="nextBtn" title="Next"><i class="fas fa-chevron-down"></i></button>
   </div>
-
   <script>
-    /********************
-     * GLOBAL VARIABLES *
-     ********************/
     const container = document.getElementById('container');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
@@ -295,16 +266,15 @@
     const feedMenu = document.getElementById('feedMenu');
     const refreshBtn = document.getElementById('refreshBtn');
 
-    // Caches to reduce API calls
     const storyCache = {};
     const previewCache = {};
 
-    let currentIndex = 0;       // Current page index
-    let stories = [];           // Array of loaded story objects
-    let storyIds = [];          // IDs for current feed
-    let currentBatchIndex = 0;  // For batch loading
-    const batchSize = 10;       // Stories per batch
-    let currentFeed = 'top';    // Default feed
+    let currentIndex = 0;
+    let stories = [];
+    let storyIds = [];
+    let currentBatchIndex = 0;
+    const batchSize = 10;
+    let currentFeed = 'top';
 
     const feedEndpoints = {
       top: 'https://hacker-news.firebaseio.com/v0/topstories.json',
@@ -315,9 +285,6 @@
       job: 'https://hacker-news.firebaseio.com/v0/jobstories.json'
     };
 
-    /***********************
-     * RENDERING FUNCTIONS *
-     ***********************/
     function renderPage(index) {
       const pages = document.querySelectorAll('.page');
       pages.forEach((page, i) => {
@@ -331,19 +298,14 @@
       });
     }
 
-    /**
-     * Create a page element for a Hacker News story.
-     */
     function createPage(story) {
       const page = document.createElement('div');
       page.classList.add('page');
 
-      // Blurred background layer
       const bgDiv = document.createElement('div');
       bgDiv.classList.add('bg-image');
       page.appendChild(bgDiv);
 
-      // Content card with story details
       const contentDiv = document.createElement('div');
       contentDiv.classList.add('story-content');
       contentDiv.innerHTML = `
@@ -353,7 +315,6 @@
       `;
       page.appendChild(contentDiv);
 
-      // Top right: HN link icon (opens HN comments page)
       const hnLink = document.createElement('a');
       hnLink.classList.add('hn-link-icon');
       hnLink.href = `https://news.ycombinator.com/item?id=${story.id}`;
@@ -361,27 +322,22 @@
       hnLink.innerHTML = `<i class="fas fa-external-link-alt"></i>`;
       page.appendChild(hnLink);
 
-      // Bottom right: HN info (Rank and Comments)
       const rank = stories.indexOf(story) + 1;
       const hnInfo = document.createElement('div');
       hnInfo.classList.add('hn-info');
       hnInfo.textContent = `#${rank} | ${story.descendants || 0} comments`;
       page.appendChild(hnInfo);
 
-      // If a URL exists, fetch preview metadata using caching
       if (story.url) {
         fetchPreviewData(story.url).then(previewData => {
           if (previewData && previewData.image && previewData.image.url) {
             const imageUrl = previewData.image.url;
-            // Set the blurred background image
             bgDiv.style.backgroundImage = `url('${imageUrl}')`;
-            // Insert a visible preview image at the top of the content card
             const imgEl = document.createElement('img');
             imgEl.classList.add('preview-img');
             imgEl.src = imageUrl;
             imgEl.alt = previewData.title || story.title || 'Preview Image';
             contentDiv.insertBefore(imgEl, contentDiv.firstChild);
-            // Optionally, add a description if available
             if (previewData.description) {
               const descP = document.createElement('p');
               descP.textContent = previewData.description;
@@ -395,9 +351,6 @@
       return page;
     }
 
-    /**
-     * Fetch preview metadata for a URL using the Microlink API (with caching).
-     */
     async function fetchPreviewData(url) {
       if (previewCache[url]) {
         return Promise.resolve(previewCache[url]);
@@ -416,15 +369,11 @@
       return null;
     }
 
-    /**************************
-     * FETCHING & BATCH LOGIC *
-     **************************/
     async function loadNextBatch() {
       if (currentBatchIndex >= storyIds.length) return;
       const idsToLoad = storyIds.slice(currentBatchIndex, currentBatchIndex + batchSize);
       currentBatchIndex += batchSize;
 
-      // Fetch story details concurrently (with caching)
       const promises = idsToLoad.map(id => {
         if (storyCache[id]) {
           return Promise.resolve(storyCache[id]);
@@ -444,6 +393,7 @@
           }
         });
         renderPage(currentIndex);
+        setupIntersectionObserver();
       } catch (error) {
         console.error('Error loading batch:', error);
       }
@@ -453,7 +403,6 @@
       try {
         const res = await fetch(feedEndpoints[feed]);
         storyIds = await res.json();
-        // Reset for new feed
         currentBatchIndex = 0;
         currentIndex = 0;
         stories = [];
@@ -464,9 +413,6 @@
       }
     }
 
-    /***********************
-     * NAVIGATION HANDLERS *
-     ***********************/
     function goToNextPage() {
       if (currentIndex < stories.length - 1) {
         currentIndex++;
@@ -481,18 +427,15 @@
       }
     }
     function checkAndLoadMore() {
-      if (currentIndex >= stories.length - 3 && currentBatchIndex < storyIds.length) {
+      // Preload next few items when closer to the end
+      if (currentIndex >= stories.length - 5 && currentBatchIndex < storyIds.length) {
         loadNextBatch();
       }
     }
-    // Refresh current feed
     function refreshFeed() {
       fetchStoryIds(currentFeed);
     }
 
-    /************************
-     * TOUCH DRAG INTERACTION *
-     ************************/
     let touchStartY = null;
     document.addEventListener('touchstart', (e) => {
       touchStartY = e.changedTouches[0].screenY;
@@ -509,9 +452,7 @@
       if (touchStartY === null) return;
       const currentY = e.changedTouches[0].screenY;
       const delta = currentY - touchStartY;
-      // Restore transitions for snapping
       document.querySelectorAll('.page').forEach(page => page.style.transition = '');
-      // Reduced threshold to 50px for faster response
       if (delta > 50) {
         goToPrevPage();
       } else if (delta < -50) {
@@ -524,7 +465,6 @@
     function updateDragging(percent) {
       const pages = document.querySelectorAll('.page');
       const progress = Math.min(1, Math.abs(percent) / 100);
-      // Update current page position and background blur
       if (pages[currentIndex]) {
         pages[currentIndex].style.transition = 'none';
         pages[currentIndex].style.transform = `translateY(${percent}%)`;
@@ -532,9 +472,9 @@
         if (bg) {
           const newBlur = 10 - progress * 10;
           bg.style.filter = `blur(${newBlur}px)`;
+          bg.style.opacity = 1; /* Ensure opacity remains 1 */
         }
       }
-      // Update next page (if dragging upward)
       if (percent < 0 && currentIndex < pages.length - 1 && pages[currentIndex + 1]) {
         pages[currentIndex + 1].style.transition = 'none';
         pages[currentIndex + 1].style.transform = `translateY(${100 + percent}%)`;
@@ -542,9 +482,9 @@
         if (bg) {
           const newBlur = progress * 10;
           bg.style.filter = `blur(${newBlur}px)`;
+          bg.style.opacity = 1; /* Ensure opacity remains 1 */
         }
       }
-      // Update previous page (if dragging downward)
       if (percent > 0 && currentIndex > 0 && pages[currentIndex - 1]) {
         pages[currentIndex - 1].style.transition = 'none';
         pages[currentIndex - 1].style.transform = `translateY(${-100 + percent}%)`;
@@ -552,22 +492,17 @@
         if (bg) {
           const newBlur = progress * 10;
           bg.style.filter = `blur(${newBlur}px)`;
+          bg.style.opacity = 1; /* Ensure opacity remains 1 */
         }
       }
     }
 
-    /************************
-     * OTHER EVENT LISTENERS *
-     ************************/
-    // Button navigation
     prevBtn.addEventListener('click', goToPrevPage);
     nextBtn.addEventListener('click', goToNextPage);
-    // Keyboard navigation (arrow keys)
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowUp') goToPrevPage();
       else if (e.key === 'ArrowDown') goToNextPage();
     });
-    // Pointer wheel navigation – each wheel event moves one article:
     let lastWheelTime = 0;
     document.addEventListener('wheel', (e) => {
       e.preventDefault();
@@ -577,7 +512,6 @@
       if (e.deltaY > 0) goToNextPage();
       else if (e.deltaY < 0) goToPrevPage();
     }, { passive: false, capture: true });
-    // Feed menu toggle using computed style
     feedMenuToggle.addEventListener('click', () => {
       if (getComputedStyle(feedMenu).display === 'none') {
         feedMenu.style.display = 'block';
@@ -585,9 +519,7 @@
         feedMenu.style.display = 'none';
       }
     });
-    // Refresh button click event
     refreshBtn.addEventListener('click', refreshFeed);
-    // Feed menu selection: event delegation (checking parent if needed)
     feedMenu.addEventListener('click', (e) => {
       e.preventDefault();
       let target = e.target;
@@ -604,10 +536,60 @@
       }
     });
 
-    /***********************
-     * INITIALIZE THE APP  *
-     ***********************/
+    function setupIntersectionObserver() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const pageIndex = Array.from(container.children).indexOf(entry.target);
+            if (pageIndex === stories.length - 3) {
+              loadNextBatch();
+            }
+          }
+        });
+      }, {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.1
+      });
+
+      document.querySelectorAll('.page').forEach(page => {
+        observer.observe(page);
+      });
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js').then(registration => {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, err => {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+
     fetchStoryIds(currentFeed);
+  </script>
+  <script>
+    // Service Worker script
+    self.addEventListener('install', event => {
+      event.waitUntil(
+        caches.open('hn-cache').then(cache => {
+          return cache.addAll([
+            '/',
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css',
+            // Add other static assets to cache
+          ]);
+        })
+      );
+    });
+
+    self.addEventListener('fetch', event => {
+      event.respondWith(
+        caches.match(event.request).then(response => {
+          return response || fetch(event.request);
+        })
+      );
+    });
   </script>
 </body>
 </html>
