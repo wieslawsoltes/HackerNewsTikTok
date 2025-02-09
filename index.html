@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <!-- Ensure proper scaling on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-  <title>HN TikTok‑Style Stream (Fast & Smooth Navigation)</title>
+  <title>HN TikTok‑Style Stream (No Aggressive Caching)</title>
   <!-- Font Awesome CSS from CDN for button icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
   <style>
@@ -28,7 +28,7 @@
       height: 100%;
     }
     /* Each page fills the viewport and slides vertically.
-       Only the transform property is animated (fast, smooth, decelerating). */
+       Only the transform property is animated (0.3s fast decelerating slide). */
     .page {
       position: absolute;
       top: 0;
@@ -42,7 +42,7 @@
       transition-property: transform;
       overflow: hidden;
     }
-    /* Blurred background image layer – transitions disabled */
+    /* Blurred background image layer – no transitions */
     .bg-image {
       position: absolute;
       top: 0;
@@ -294,10 +294,7 @@
     const feedMenu = document.getElementById('feedMenu');
     const refreshBtn = document.getElementById('refreshBtn');
 
-    // Caches to reduce API calls
-    const storyCache = {};
-    const previewCache = {};
-
+    // (No caching is used now for a less aggressive approach)
     let currentIndex = 0;       // Current page index
     let stories = [];           // Array of loaded story objects
     let storyIds = [];          // IDs for current feed
@@ -367,7 +364,7 @@
       hnInfo.textContent = `#${rank} | ${story.descendants || 0} comments`;
       page.appendChild(hnInfo);
 
-      // If a URL exists, fetch preview metadata using caching
+      // If a URL exists, fetch preview metadata (without caching)
       if (story.url) {
         fetchPreviewData(story.url).then(previewData => {
           if (previewData && previewData.image && previewData.image.url) {
@@ -395,18 +392,15 @@
     }
 
     /**
-     * Fetch preview metadata for a URL using the Microlink API (with caching).
+     * Fetch preview metadata for a URL using the Microlink API.
+     * (Caching has been removed for a less aggressive approach.)
      */
     async function fetchPreviewData(url) {
-      if (previewCache[url]) {
-        return Promise.resolve(previewCache[url]);
-      }
       try {
         const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&meta=true`;
         const response = await fetch(apiUrl);
         const data = await response.json();
         if (data && data.data) {
-          previewCache[url] = data.data;
           return data.data;
         }
       } catch (error) {
@@ -422,17 +416,10 @@
       if (currentBatchIndex >= storyIds.length) return;
       const idsToLoad = storyIds.slice(currentBatchIndex, currentBatchIndex + batchSize);
       currentBatchIndex += batchSize;
-
-      // Fetch story details concurrently (with caching)
-      const promises = idsToLoad.map(id => {
-        if (storyCache[id]) {
-          return Promise.resolve(storyCache[id]);
-        } else {
-          return fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`)
-            .then(res => res.json())
-            .then(data => { storyCache[id] = data; return data; });
-        }
-      });
+      // Fetch story details concurrently (without caching)
+      const promises = idsToLoad.map(id =>
+        fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).then(res => res.json())
+      );
       try {
         const newStories = await Promise.all(promises);
         newStories.forEach(story => {
@@ -475,7 +462,6 @@
       if (currentIndex < stories.length - 1) {
         currentIndex++;
         renderPage(currentIndex);
-        // Prefetch if within 5 pages of end
         if (currentIndex >= stories.length - 5 && currentBatchIndex < storyIds.length) {
           loadNextBatch();
         }
@@ -507,9 +493,7 @@
       if (touchStartY === null) return;
       const currentY = e.changedTouches[0].screenY;
       const delta = currentY - touchStartY;
-      // Restore transitions for snapping
       document.querySelectorAll('.page').forEach(page => page.style.transition = '');
-      // Use threshold of 50px for faster response
       if (delta > 50) {
         goToPrevPage();
       } else if (delta < -50) {
@@ -522,7 +506,6 @@
     function updateDragging(percent) {
       const pages = document.querySelectorAll('.page');
       const progress = Math.min(1, Math.abs(percent) / 100);
-      // Update current page position and background blur
       if (pages[currentIndex]) {
         pages[currentIndex].style.transition = 'none';
         pages[currentIndex].style.transform = `translateY(${percent}%)`;
@@ -532,7 +515,6 @@
           bg.style.filter = `blur(${newBlur}px)`;
         }
       }
-      // Update next page (if dragging upward)
       if (percent < 0 && currentIndex < pages.length - 1 && pages[currentIndex + 1]) {
         pages[currentIndex + 1].style.transition = 'none';
         pages[currentIndex + 1].style.transform = `translateY(${100 + percent}%)`;
@@ -542,7 +524,6 @@
           bg.style.filter = `blur(${newBlur}px)`;
         }
       }
-      // Update previous page (if dragging downward)
       if (percent > 0 && currentIndex > 0 && pages[currentIndex - 1]) {
         pages[currentIndex - 1].style.transition = 'none';
         pages[currentIndex - 1].style.transform = `translateY(${-100 + percent}%)`;
@@ -557,15 +538,12 @@
     /************************
      * OTHER EVENT LISTENERS *
      ************************/
-    // Button navigation
     prevBtn.addEventListener('click', goToPrevPage);
     nextBtn.addEventListener('click', goToNextPage);
-    // Keyboard navigation (arrow keys)
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowUp') goToPrevPage();
       else if (e.key === 'ArrowDown') goToNextPage();
     });
-    // Pointer wheel navigation – each wheel event moves one article:
     let lastWheelTime = 0;
     document.addEventListener('wheel', (e) => {
       e.preventDefault();
@@ -575,7 +553,6 @@
       if (e.deltaY > 0) goToNextPage();
       else if (e.deltaY < 0) goToPrevPage();
     }, { passive: false, capture: true });
-    // Feed menu toggle using computed style
     feedMenuToggle.addEventListener('click', () => {
       if (getComputedStyle(feedMenu).display === 'none') {
         feedMenu.style.display = 'block';
@@ -583,9 +560,7 @@
         feedMenu.style.display = 'none';
       }
     });
-    // Refresh button click event
     refreshBtn.addEventListener('click', refreshFeed);
-    // Feed menu selection: event delegation (checking parent if needed)
     feedMenu.addEventListener('click', (e) => {
       e.preventDefault();
       let target = e.target;
