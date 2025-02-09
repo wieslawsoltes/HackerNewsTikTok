@@ -40,7 +40,7 @@
       transform: translateZ(0);
       isolation: isolate;
     }
-    /* Background image for a page – increased blur and dark overlay for better contrast */
+    /* Background image for a page – increased blur and dark overlay */
     .bg-image {
       position: absolute;
       top: 0;
@@ -58,7 +58,7 @@
       background-color: rgba(0, 0, 0, 0.5);
       background-blend-mode: multiply;
     }
-    /* The story card (white content area) with extra vertical margin */
+    /* Story card with extra vertical margin */
     .story-content {
       position: relative;
       z-index: 1;
@@ -89,7 +89,7 @@
     .page.image-loaded .preview-img {
       opacity: 1;
     }
-    /* Fixed top left control (feed menu toggle) */
+    /* Fixed corner controls (10px margin from each corner) */
     .feed-menu-toggle {
       position: fixed;
       top: 10px;
@@ -104,7 +104,6 @@
     .feed-menu-toggle i {
       font-size: 24px;
     }
-    /* Refresh button (not at a corner) */
     #refreshBtn {
       position: fixed;
       top: 10px;
@@ -118,7 +117,6 @@
       opacity: 0.9;
       text-shadow: 0 0 3px black;
     }
-    /* Fixed top right control (HN link) */
     #globalHNLink {
       position: fixed;
       top: 10px;
@@ -129,7 +127,6 @@
       font-size: 20px;
       text-shadow: 0 0 3px black;
     }
-    /* Fixed bottom right control (comments button) */
     #globalCommentsButton {
       position: fixed;
       bottom: 10px;
@@ -141,7 +138,6 @@
       cursor: pointer;
       text-shadow: 0 0 3px black;
     }
-    /* Fixed bottom left control (navigation buttons) */
     .nav-buttons {
       position: fixed;
       bottom: 10px;
@@ -162,7 +158,7 @@
       position: fixed;
       top: 60px;
       left: 10px;
-      background: rgba(0, 0, 0, 0.7); /* semi-transparent dark background */
+      background: rgba(0, 0, 0, 0.7);
       border: none;
       border-radius: 5px;
       padding: 10px;
@@ -200,7 +196,7 @@
       z-index: 100;
       touch-action: none;
     }
-    /* Comments dialog now fills entire page */
+    /* Comments dialog fills entire page */
     .thread-dialog {
       position: fixed;
       top: 0;
@@ -212,13 +208,12 @@
       overflow: hidden;
       z-index: 101;
     }
-    /* Scrollable content area inside dialog */
     .thread-content {
       padding: 20px;
       height: 100%;
       overflow-y: auto;
     }
-    /* Close button – remove text-shadow (no blur) */
+    /* Close button without text-shadow */
     .close-button {
       position: absolute;
       top: 10px;
@@ -264,7 +259,6 @@
       .preview-img {
         max-height: 200px;
       }
-      /* Adjust fixed controls for small screens */
       #globalHNLink {
         top: 8px;
         right: 8px;
@@ -337,7 +331,7 @@
     <button id="nextBtn" title="Next"><i class="fas fa-chevron-down"></i></button>
   </div>
   
-  <!-- Global fixed controls that do not translate (top right and bottom right) -->
+  <!-- Global fixed controls (top right and bottom right) -->
   <a id="globalHNLink" href="#" target="_blank"><i class="fas fa-external-link-alt"></i></a>
   <div id="globalCommentsButton">#0 | 0 comments</div>
 
@@ -400,6 +394,14 @@
       updateGlobalControls();
     }
 
+    // Helper: Fetch preview data with a timeout.
+    async function fetchPreviewDataWithTimeout(url, timeout = 3000) {
+      return Promise.race([
+        fetchPreviewData(url),
+        new Promise(resolve => setTimeout(() => resolve(null), timeout))
+      ]);
+    }
+
     // Create or reuse a page for a given story.
     function createPage(story) {
       if (renderedPagesCache[story.id]) return renderedPagesCache[story.id];
@@ -426,41 +428,37 @@
       }
       page.appendChild(contentDiv);
 
-      // Try to fetch preview data concurrently.
       if (story.url) {
-        fetchPreviewData(story.url).then(previewData => {
+        // Use a static neutral placeholder.
+        const placeholderUrl = 'https://via.placeholder.com/800x300/cccccc/666666?text=Preview';
+        const imgEl = document.createElement('img');
+        imgEl.classList.add('preview-img');
+        imgEl.src = placeholderUrl;
+        contentDiv.insertBefore(imgEl, contentDiv.firstChild);
+
+        // Fetch preview data using OpenGraph.io.
+        fetchPreviewDataWithTimeout(story.url, 3000).then(previewData => {
           let imageUrl = null;
-          if (previewData) {
-            if (previewData.image && previewData.image.url) {
-              imageUrl = previewData.image.url;
-            } else if (previewData.screenshot && previewData.screenshot.url) {
-              imageUrl = previewData.screenshot.url;
-            }
+          if (previewData && previewData.image) {
+            imageUrl = previewData.image;
           }
           if (!imageUrl) {
-            // Fallback using an alternative screenshot service (WordPress mShots)
             imageUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(story.url)}?w=800`;
           }
-          if (imageUrl) {
-            bgDiv.style.backgroundImage = `url('${imageUrl}')`;
-            const imgEl = document.createElement('img');
-            imgEl.classList.add('preview-img');
-            imgEl.src = imageUrl;
-            imgEl.alt = (previewData && previewData.title) ? previewData.title : (story.title || 'Preview Image');
-            imgEl.onload = () => page.classList.add('image-loaded');
-            if (imgEl.complete) page.classList.add('image-loaded');
-            contentDiv.insertBefore(imgEl, contentDiv.firstChild);
-            if (previewData && previewData.description) {
-              const descP = document.createElement('p');
-              descP.textContent = previewData.description;
-              contentDiv.appendChild(descP);
-            }
+          bgDiv.style.backgroundImage = `url('${imageUrl}')`;
+          imgEl.src = imageUrl;
+          imgEl.alt = (previewData && previewData.title) ? previewData.title : (story.title || 'Preview Image');
+          imgEl.onload = () => page.classList.add('image-loaded');
+          if (imgEl.complete) page.classList.add('image-loaded');
+          if (previewData && previewData.description) {
+            const descP = document.createElement('p');
+            descP.textContent = previewData.description;
+            contentDiv.appendChild(descP);
           }
         }).catch(err => {
           console.error('Error fetching preview data:', err);
         });
       } else {
-        // For non-link posts, fall back to rendering a screenshot of the HN page.
         let fallbackUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent('https://news.ycombinator.com/item?id=' + story.id)}?w=800`;
         bgDiv.style.backgroundImage = `url('${fallbackUrl}')`;
         const imgEl = document.createElement('img');
@@ -475,25 +473,19 @@
       return page;
     }
 
-    // Fetch preview data concurrently from two Microlink endpoints.
+    // Use OpenGraph.io as the preview service.
     async function fetchPreviewData(url) {
       if (previewCache[url]) return previewCache[url];
       try {
-        const metaPromise = fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}&meta=true`).then(res => res.json());
-        const screenshotPromise = fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true`).then(res => res.json());
-        const [metaData, screenshotData] = await Promise.all([metaPromise, screenshotPromise]);
-        let data = null;
-        if (metaData && metaData.data && metaData.data.image && metaData.data.image.url) {
-          data = metaData.data;
-        } else if (screenshotData && screenshotData.data && screenshotData.data.screenshot && screenshotData.data.screenshot.url) {
-          data = screenshotData.data;
-        }
+        const response = await fetch(`https://opengraph.io/api/1.1/site/${encodeURIComponent(url)}?app_id=demo`);
+        const json = await response.json();
+        const data = json.hybridGraph; // OpenGraph.io returns a hybridGraph object.
         if (data) {
           previewCache[url] = data;
           return data;
         }
       } catch (error) {
-        console.error('Error fetching preview data concurrently:', error);
+        console.error('Error fetching preview data from OpenGraph.io:', error);
       }
       return null;
     }
@@ -727,14 +719,14 @@
           </div>
         `;
         document.body.appendChild(overlay);
-        // Stop propagation of wheel and touchmove events to prevent main page scroll.
+        // Stop propagation of wheel and touchmove events.
         overlay.addEventListener('wheel', function(e) {
           e.stopPropagation();
         }, { passive: false });
         overlay.addEventListener('touchmove', function(e) {
           e.stopPropagation();
         }, { passive: false });
-        // Clicking on the overlay background closes the dialog.
+        // Clicking on overlay background closes dialog and restores scroll.
         overlay.addEventListener('click', (e) => {
           if(e.target.id === 'threadOverlay') {
             overlay.style.display = 'none';
@@ -743,9 +735,12 @@
         });
       }
       overlay.style.display = 'block';
+      // Disable main page scroll.
+      document.body.style.overflow = 'hidden';
       const closeBtn = overlay.querySelector('#closeThreadOverlay');
       closeBtn.addEventListener('click', () => {
         overlay.style.display = 'none';
+        document.body.style.overflow = '';
       });
       const threadContent = overlay.querySelector('#threadContent');
       threadContent.innerHTML = `<div id="threadLoading" style="margin-top:40px; text-align:center;">Loading comments...</div>`;
