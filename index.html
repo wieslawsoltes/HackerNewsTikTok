@@ -65,7 +65,7 @@
       background: rgba(255, 255, 255, 0.95);
       border-radius: 10px;
       padding: 20px;
-      margin: 20px auto;  /* extra margin on top and bottom */
+      margin: 20px auto;
       width: 90%;
       max-width: 800px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
@@ -89,7 +89,7 @@
     .page.image-loaded .preview-img {
       opacity: 1;
     }
-    /* Fixed top controls */
+    /* Fixed top left control (feed menu toggle) */
     .feed-menu-toggle {
       position: fixed;
       top: 10px;
@@ -104,6 +104,7 @@
     .feed-menu-toggle i {
       font-size: 24px;
     }
+    /* Refresh button (not at a corner) */
     #refreshBtn {
       position: fixed;
       top: 10px;
@@ -117,7 +118,7 @@
       opacity: 0.9;
       text-shadow: 0 0 3px black;
     }
-    /* Global fixed HN link at top right */
+    /* Fixed top right control (HN link) */
     #globalHNLink {
       position: fixed;
       top: 10px;
@@ -128,11 +129,11 @@
       font-size: 20px;
       text-shadow: 0 0 3px black;
     }
-    /* Global fixed comments button at bottom right */
+    /* Fixed bottom right control (comments button) */
     #globalCommentsButton {
       position: fixed;
-      bottom: 20px;
-      right: 20px;
+      bottom: 10px;
+      right: 10px;
       font-size: 14px;
       padding: 5px 10px;
       z-index: 30;
@@ -140,11 +141,11 @@
       cursor: pointer;
       text-shadow: 0 0 3px black;
     }
-    /* Navigation buttons container – fixed at bottom left, horizontally stacked */
+    /* Fixed bottom left control (navigation buttons) */
     .nav-buttons {
       position: fixed;
-      bottom: 20px;
-      left: 20px;
+      bottom: 10px;
+      left: 10px;
       display: flex;
       gap: 10px;
       z-index: 30;
@@ -156,12 +157,12 @@
       font-size: 24px;
       cursor: pointer;
     }
-    /* Feed menu (appears below top controls) */
+    /* Feed menu with semi-transparent background */
     .feed-menu {
       position: fixed;
       top: 60px;
       left: 10px;
-      background: none;
+      background: rgba(0, 0, 0, 0.7); /* semi-transparent dark background */
       border: none;
       border-radius: 5px;
       padding: 10px;
@@ -199,29 +200,25 @@
       z-index: 100;
       touch-action: none;
     }
-    /* Dialog container for comments overlay – stays centered */
+    /* Comments dialog now fills entire page */
     .thread-dialog {
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      max-width: 600px;
-      width: 90%;
-      max-height: 80%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       background: #fff;
       color: #000;
-      border-radius: 10px;
       overflow: hidden;
       z-index: 101;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
     /* Scrollable content area inside dialog */
     .thread-content {
       padding: 20px;
-      height: calc(100% - 40px);
+      height: 100%;
       overflow-y: auto;
     }
-    /* Close button rendered as a plain icon – no background – fixed to top-right of dialog */
+    /* Close button – remove text-shadow (no blur) */
     .close-button {
       position: absolute;
       top: 10px;
@@ -232,6 +229,7 @@
       font-size: 24px;
       cursor: pointer;
       z-index: 10;
+      text-shadow: none !important;
     }
     /* Compact comment tree styling */
     .comment-tree {
@@ -273,8 +271,8 @@
         font-size: 24px;
       }
       #globalCommentsButton {
-        bottom: 20px;
-        right: 20px;
+        bottom: 10px;
+        right: 10px;
         font-size: 16px;
         padding: 8px 12px;
       }
@@ -296,7 +294,7 @@
         left: 8px;
       }
       .nav-buttons {
-        bottom: 20px;
+        bottom: 10px;
         left: 10px;
       }
       .nav-buttons button {
@@ -339,7 +337,7 @@
     <button id="nextBtn" title="Next"><i class="fas fa-chevron-down"></i></button>
   </div>
   
-  <!-- Global fixed controls that do not translate -->
+  <!-- Global fixed controls that do not translate (top right and bottom right) -->
   <a id="globalHNLink" href="#" target="_blank"><i class="fas fa-external-link-alt"></i></a>
   <div id="globalCommentsButton">#0 | 0 comments</div>
 
@@ -714,7 +712,7 @@
       return container;
     }
     
-    // Open the comments overlay using a dialog structure.
+    // Open the comments overlay using a dialog that fills the entire page.
     function openThreadOverlay(story) {
       let overlay = document.getElementById('threadOverlay');
       if (!overlay) {
@@ -729,13 +727,26 @@
           </div>
         `;
         document.body.appendChild(overlay);
+        // Stop propagation of wheel and touchmove events to prevent main page scroll.
+        overlay.addEventListener('wheel', function(e) {
+          e.stopPropagation();
+        }, { passive: false });
+        overlay.addEventListener('touchmove', function(e) {
+          e.stopPropagation();
+        }, { passive: false });
+        // Clicking on the overlay background closes the dialog.
         overlay.addEventListener('click', (e) => {
-          if(e.target.id === 'threadOverlay') overlay.style.display = 'none';
+          if(e.target.id === 'threadOverlay') {
+            overlay.style.display = 'none';
+            document.body.style.overflow = '';
+          }
         });
       }
       overlay.style.display = 'block';
       const closeBtn = overlay.querySelector('#closeThreadOverlay');
-      closeBtn.addEventListener('click', () => { overlay.style.display = 'none'; });
+      closeBtn.addEventListener('click', () => {
+        overlay.style.display = 'none';
+      });
       const threadContent = overlay.querySelector('#threadContent');
       threadContent.innerHTML = `<div id="threadLoading" style="margin-top:40px; text-align:center;">Loading comments...</div>`;
       
